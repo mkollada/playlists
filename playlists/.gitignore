@@ -1,6 +1,6 @@
 __pycache__
 .DS_Store
-.idea
+.idea/
 *.egg-info
 venv
 .cache
