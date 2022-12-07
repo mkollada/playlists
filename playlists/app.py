@@ -55,11 +55,12 @@ def serve_search_bar_js():
 def search():
     # Get the search query from the request
     query = request.args.get('query')
-
-    # Use the Spotify client to search for tracks
-    results = sp.search(query, type="track")
-
-    return jsonify(results['tracks']['items'])
+    if query:
+        # Use the Spotify client to search for tracks
+        results = sp.search(query, type="track")
+        return jsonify(results['tracks']['items'])
+    else:
+        return jsonify({})
 
 
 @app.route('/add_songs')
