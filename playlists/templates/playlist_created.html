@@ -1,0 +1,17 @@
+<html>
+  <head>
+    <title>PlaylistTG Created!</title>
+  </head>
+  <body>
+
+    <h2>PlaylistTG Created! Name: {{ name }}</h2>
+    <div>
+      <p>Here's the link to your new PlaylistTG: {{ link }}</p>
+    </div>
+    <p>Now go add some songs!</p>
+    <form action="{{url_for('add_songs')}}" method="GET">
+      <input type="submit" value="Go to add songs">
+    </form>
+
+  </body>
+</html>

@@ -10,14 +10,21 @@ app.config.from_mapping(
         SECRET_KEY='dev'
     )
 
-scope = 'user-library-read'
+scope = 'playlist-modify-private'
 CACHE = '.spotifycache'
 # Reads client id and client secret from environment variables
 # sp_oauth = oauth2.SpotifyOAuth(scope=SCOPE,cache_path=CACHE)
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
 
-
 @app.route('/')
+def home():
+    token_info = sp.auth_manager.get_cached_token()
+    if token_info and not sp.auth_manager.is_token_expired(token_info):
+        return redirect(url_for('create'))
+    else:
+        return redirect((url_for('login')))
+
+@app.route('/login')
 def login():
     # If auth token is already cached and not expired, use that else redirect
     # user to login or refresh token
@@ -25,10 +32,9 @@ def login():
     if token_info and not sp.auth_manager.is_token_expired(token_info):
         access_token = token_info['access_token']
         session['access_token'] = access_token
-        return redirect(url_for('add_songs'))
+        return redirect(request.referrer)
     else:
         login_url = sp.auth_manager.get_authorize_url()
-        print(login_url)
         return redirect(login_url)
 
 
@@ -38,19 +44,18 @@ def set_token():
     token_info = sp.auth_manager.get_access_token(code)
     access_token = token_info['access_token']
     session['access_token'] = access_token
-    return redirect(url_for('add_songs'))
 
+    redirect_url = session['prev_url']
+    session['prev_url'] = None
 
-@app.route('/home')
-def home():
-    return 'Welcome to Playlists TG'
+    return redirect(redirect_url)
 
 
 @app.route('/js/add_songs.js')
 def serve_search_bar_js():
     return app.send_static_file('js/add_songs.js')
 
-
+# TODO: Make this a post/get method
 @app.route('/search')
 def search():
     # Get the search query from the request
@@ -63,9 +68,62 @@ def search():
         return jsonify({})
 
 
-@app.route('/add_songs')
+@app.route('/add_songs', methods=['GET'])
 def add_songs():
-    return render_template('add_songs.html')
+
+    token_info = sp.auth_manager.get_cached_token()
+    if token_info and not sp.auth_manager.is_token_expired(token_info):
+        return render_template('add_songs.html')
+    else:
+        session['prev_url'] = '/add_songs'
+        return redirect((url_for('login')))
+
+
+@app.route('/create')
+def create():
+    token_info = sp.auth_manager.get_cached_token()
+    if token_info and not sp.auth_manager.is_token_expired(token_info):
+        return render_template('create.html')
+    else:
+        session['prev_url'] = '/create'
+        return redirect((url_for('login')))
+
+
+@app.route('/test')
+def test():
+    token_info = sp.auth_manager.get_cached_token()
+    if token_info and not sp.auth_manager.is_token_expired(token_info):
+        return render_template('create.html')
+    else:
+        session['prev_url'] = '/create'
+        return redirect((url_for('login')))
+
+
+@app.route('/playlist_created')
+def playlist_created():
+    return render_template('playlist_created.html',
+                           name=request.args['name'],
+                           link=request.args['link'])
+
+
+@app.route('/create_playlist', methods=['POST', 'GET'])
+def create_playlist():
+
+    playlist = sp.user_playlist_create(
+        user=sp.current_user()['id'],
+        name=request.form['playlist-name-field'],
+        public=False,
+        collaborative=True,
+        description=request.form['playlist-desc-field']
+    )
+
+    playlist
+
+    return redirect(url_for('playlist_created',
+                    name=request.form['playlist-name-field'],
+                    link=playlist['external_urls']['spotify']))
+
+
 
 
 if __name__ == '__main__':
