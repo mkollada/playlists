@@ -1,14 +1,21 @@
 from flask import Flask, redirect, session, url_for, request, render_template, \
     jsonify
+import os
+from flask_sqlalchemy import SQLAlchemy
+from models.db_model import User, Playlist, SongContribution
 
 import spotipy
-# from spotipy import oauth2
 from spotipy.oauth2 import SpotifyOAuth
 
 app = Flask(__name__)
 app.config.from_mapping(
         SECRET_KEY='dev'
     )
+app_dir = os.path.dirname(os.path.realpath(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite://{app_dir}/database.db'
+
+db = SQLAlchemy(app)
+db.create_all()
 
 scope = 'playlist-modify-private'
 CACHE = '.spotifycache'
@@ -24,15 +31,21 @@ def home():
     else:
         return redirect((url_for('login')))
 
+def check_if_registered():
+    sp.current_user()
+
 @app.route('/login')
 def login():
     # If auth token is already cached and not expired, use that else redirect
     # user to login or refresh token
     token_info = sp.auth_manager.get_cached_token()
+    # if already logged in
     if token_info and not sp.auth_manager.is_token_expired(token_info):
         access_token = token_info['access_token']
         session['access_token'] = access_token
+        check_if_registered()
         return redirect(request.referrer)
+    # go login
     else:
         login_url = sp.auth_manager.get_authorize_url()
         return redirect(login_url)
