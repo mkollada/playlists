@@ -2,7 +2,6 @@ from flask import Flask, redirect, session, url_for, request, render_template, \
     jsonify
 import os
 from flask_sqlalchemy import SQLAlchemy
-from models.db_model import User, Playlist, SongContribution
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
@@ -12,10 +11,32 @@ app.config.from_mapping(
         SECRET_KEY='dev'
     )
 app_dir = os.path.dirname(os.path.realpath(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite://{app_dir}/database.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///database.sqlite3'
 
-db = SQLAlchemy(app)
-db.create_all()
+db = SQLAlchemy()
+db.init_app(app)
+
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    spotify_user_uri = db.Column(db.String(100), unique=True)
+
+
+class Playlist(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    spotify_playlist_uri = db.Column(db.String(100), unique=True)
+    creator_user_id = db.Column(db.Integer)
+
+
+class SongContribution(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer)
+    playlist_id = db.Column(db.Integer)
+    spotify_track_uri = db.Column(db.String(100))
+
+
+with app.app_context():
+    db.create_all()
 
 scope = 'playlist-modify-private'
 CACHE = '.spotifycache'
@@ -23,16 +44,41 @@ CACHE = '.spotifycache'
 # sp_oauth = oauth2.SpotifyOAuth(scope=SCOPE,cache_path=CACHE)
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
 
+
+def query_current_user_id():
+    # TODO: probably should be a check here if we get user
+    return User.query.filter(
+        User.spotify_user_uri == sp.current_user()['uri']
+    ).first().id
+
+
 @app.route('/')
 def home():
     token_info = sp.auth_manager.get_cached_token()
     if token_info and not sp.auth_manager.is_token_expired(token_info):
         return redirect(url_for('create'))
     else:
+        session['prev_url'] = '/'
         return redirect((url_for('login')))
 
-def check_if_registered():
-    sp.current_user()
+
+def register_current_user():
+    user = User(spotify_user_uri=sp.current_user()['uri'])
+    db.session.add(user)
+    db.session.commit()
+    return user
+
+
+def check_if_user_registered():
+    query = User.query.filter(User.spotify_user_uri == sp.current_user()['uri'])
+    user = query.first()
+
+    if user:
+        return user
+    else:
+        user = register_current_user()
+        return user
+
 
 @app.route('/login')
 def login():
@@ -43,7 +89,7 @@ def login():
     if token_info and not sp.auth_manager.is_token_expired(token_info):
         access_token = token_info['access_token']
         session['access_token'] = access_token
-        check_if_registered()
+
         return redirect(request.referrer)
     # go login
     else:
@@ -57,6 +103,8 @@ def set_token():
     token_info = sp.auth_manager.get_access_token(code)
     access_token = token_info['access_token']
     session['access_token'] = access_token
+
+    check_if_user_registered()
 
     redirect_url = session['prev_url']
     session['prev_url'] = None
@@ -96,17 +144,9 @@ def add_songs():
 def create():
     token_info = sp.auth_manager.get_cached_token()
     if token_info and not sp.auth_manager.is_token_expired(token_info):
-        return render_template('create.html')
-    else:
-        session['prev_url'] = '/create'
-        return redirect((url_for('login')))
-
-
-@app.route('/test')
-def test():
-    token_info = sp.auth_manager.get_cached_token()
-    if token_info and not sp.auth_manager.is_token_expired(token_info):
-        return render_template('create.html')
+        current_user_id = query_current_user_id()
+        return render_template('create.html',
+                               current_user_id=current_user_id)
     else:
         session['prev_url'] = '/create'
         return redirect((url_for('login')))
@@ -117,6 +157,8 @@ def playlist_created():
     return render_template('playlist_created.html',
                            name=request.args['name'],
                            link=request.args['link'])
+
+
 
 
 @app.route('/create_playlist', methods=['POST', 'GET'])
@@ -130,13 +172,17 @@ def create_playlist():
         description=request.form['playlist-desc-field']
     )
 
-    playlist
+    current_user_id = query_current_user_id()
+
+    playlist_db_entry = Playlist(spotify_playlist_uri=playlist['uri'],
+                                 creator_user_id=current_user_id)
+
+    db.session.add(playlist_db_entry)
+    db.session.commit()
 
     return redirect(url_for('playlist_created',
                     name=request.form['playlist-name-field'],
                     link=playlist['external_urls']['spotify']))
-
-
 
 
 if __name__ == '__main__':
