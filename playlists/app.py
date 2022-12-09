@@ -24,7 +24,7 @@ class User(db.Model):
 
 class Playlist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    spotify_playlist_uri = db.Column(db.String(100), unique=True)
+    spotify_playlist_id = db.Column(db.String(100), unique=True)
     creator_user_id = db.Column(db.Integer)
 
 
@@ -36,6 +36,7 @@ class SongContribution(db.Model):
 
 
 with app.app_context():
+    # db.drop_all() # Using to reset database if necessary
     db.create_all()
 
 scope = 'playlist-modify-private'
@@ -129,15 +130,41 @@ def search():
         return jsonify({})
 
 
-@app.route('/add_songs', methods=['GET'])
-def add_songs():
+# @app.route('/add_songs', methods=['GET'])
+# def add_songs():
+#
+#     token_info = sp.auth_manager.get_cached_token()
+#     if token_info and not sp.auth_manager.is_token_expired(token_info):
+#         return render_template('add_songs.html')
+#     else:
+#         session['prev_url'] = '/add_songs'
+#         return redirect((url_for('login')))
+
+
+@app.route('/add_songs/<string:spotify_playlist_id>', methods=['GET'])
+def add_songs(spotify_playlist_id):
 
     token_info = sp.auth_manager.get_cached_token()
     if token_info and not sp.auth_manager.is_token_expired(token_info):
-        return render_template('add_songs.html')
+        return render_template('add_songs.html',
+                               spotify_playlist_id=spotify_playlist_id)
     else:
         session['prev_url'] = '/add_songs'
         return redirect((url_for('login')))
+
+
+@app.route('/add_songs_to_playlist/<string:spotify_playlist_id>',
+           methods=['POST'])
+def add_tracks_to_playlist(spotify_playlist_id):
+    tracks = request.args.get('tracks')
+
+
+
+
+@app.route('/tracks_added/<string:spotify_playlist_id>')
+def tracks_added(spotify_playlist_id):
+    print('didnt add tracks')
+
 
 
 @app.route('/create')
@@ -154,7 +181,7 @@ def create():
 
 @app.route('/playlist_created')
 def playlist_created():
-    return render_template('playlist_created.html',
+    return render_template('playlist_created1.html',
                            name=request.args['name'],
                            link=request.args['link'])
 
@@ -174,7 +201,7 @@ def create_playlist():
 
     current_user_id = query_current_user_id()
 
-    playlist_db_entry = Playlist(spotify_playlist_uri=playlist['uri'],
+    playlist_db_entry = Playlist(spotify_playlist_id=playlist['id'],
                                  creator_user_id=current_user_id)
 
     db.session.add(playlist_db_entry)
@@ -182,7 +209,8 @@ def create_playlist():
 
     return redirect(url_for('playlist_created',
                     name=request.form['playlist-name-field'],
-                    link=playlist['external_urls']['spotify']))
+                    link=playlist['external_urls']['spotify'],
+                    spotify_playlist_id=playlist['id']))
 
 
 if __name__ == '__main__':

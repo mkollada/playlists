@@ -6,8 +6,17 @@
 
     {% include 'search_bar.html' %}
     <p>Selected Songs</p>
-    <div id="selected-songs"></div>
+
     <script src="{{ url_for( 'serve_search_bar_js' ) }}"></script>
+
+    <form action="{{url_for( 'add_tracks_to_playlist',
+    spotify_playlist_id=spotify_playlist_id )}}" method="POST">
+      <div id="selected-songs"></div>
+      <input type="submit" value="Add songs to playlist">
+    </form>
+
+
+
 
 
   </body>
