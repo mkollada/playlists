@@ -1,5 +1,6 @@
 const searchInput = document.getElementById('search-input');
 const searchResults = document.getElementById('search-results');
+const addSongsBtn = document.getElementById('add-songs-button')
 const selectedSongsDiv = document.getElementById('selected-songs');
 
 var selected_songs_arr = []
@@ -110,17 +111,17 @@ function add_selected_song_to_display(track, selectedSongsDiv) {
 
     // Outer div to hold name and x button next to each other
     const selectedDiv = document.createElement('div');
-    selectedDiv.setAttribute('id', get_selected_song_div_id(track));
+    selectedDiv.setAttribute('name', get_selected_song_div_id(track));
 
     // Inner div for name of song
     const selectedDivName = document.createElement('div');
-    selectedDivName.setAttribute('id', get_selected_song_div_id(track) + '-name');
+    selectedDivName.setAttribute('name', get_selected_song_div_id(track) + '-name');
     selectedDivName.innerText = get_song_and_artist_name(track);
     selectedDivName.style.display = "inline-block";
 
     // X button to unselect song
     const selectedDivXBtn = document.createElement('button');
-    selectedDivXBtn.setAttribute('id', get_selected_song_div_id(track) + '-xbtn');
+    selectedDivXBtn.setAttribute('name', get_selected_song_div_id(track) + '-xbtn');
     selectedDivXBtn.style.display = "inline-block";
     selectedDivXBtn.innerText = 'X'
     selectedDivXBtn.addEventListener('click', function onClick() {
@@ -187,3 +188,56 @@ searchInput.addEventListener('keyup', function() {
 
     });
 });
+
+if (addSongsBtn) {
+    addSongsBtn.addEventListener('click', function onClick() {
+
+        console.log('Success')
+
+        tracks_to_add = []
+        selected_songs_arr.forEach(function(track, loop_index, _) {
+            tracks_to_add.push( track['id'] )
+        });
+
+        const add_to_playlist_url ='/add_tracks_to_playlist/'+this.name
+
+        let data = new FormData()
+        data.append('tracks',tracks_to_add)
+
+//        let data =
+
+        fetch(add_to_playlist_url, {
+            'method':'POST',
+            "headers": {"Content-Type": "application/json"},
+            'body':JSON.stringify({tracks_to_add})
+        })
+
+
+    });
+}
+
+//        const URL = '/add_songs_to_playlist/'+this.name
+//        var xhr = new XMLHttpRequest();
+//        xhr.open("POST", URL, true);
+//        xhr.setRequestHeader("Content-Type", "application/json");
+//        xhr.onload = function () {
+//            console.log(this.responseText);
+//        };
+//        xhr.send(JSON.stringify({
+//            "message": "Hello, Flask!"
+//        }));
+//        fetch('/add_songs_to_playlist/'+this.name, {
+//          method: 'POST',
+//          body: JSON.stringify(tracks_to_add), // stringify the data before sending
+//          headers: {
+//            'Content-Type': 'application/json'
+//          }
+//        })
+//        .then(response => response.json())
+//        .then(response => {
+//          // Do something with the response from the Flask endpoint
+//          console.log(response)
+//        })
+//        .catch(error => {
+//          // Handle any errors that occurred
+//        });

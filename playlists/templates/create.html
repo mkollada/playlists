@@ -8,23 +8,25 @@
     <h3>Current User ID:"{{ current_user_id }}"</h3>
 
     <form action="{{url_for('create_playlist')}}" method="POST">
-<!--      <div>-->
-<!--        <p>Playlist Name:</p>-->
+      <div>
+        <p>Playlist Name:</p>
         <input type="text" name="playlist-name-field" placeholder="Name">
-<!--      </div>-->
-<!--      <div>-->
-<!--        <p>Playlist Description:</p>-->
+      </div>
+      <div>
+        <p>Playlist Description:</p>
         <input type="text" name="playlist-desc-field" placeholder="Description">
-<!--      </div>-->
-<!--      <div>-->
-<!--        <label for="number-of-songs">How many songs should each person add:</label>-->
+      </div>
+      <div>
+        <label for="number-of-songs">How many songs should each person add:</label>
         <select name="number-of-songs">
           <option selected>1</option>
           <option>2</option>
           <option>3</option>
         </select>
-<!--      </div>-->
+      </div>
+        <div></div>
         <input type="submit" value="Create a PlaylistTG">
+
     </form>
 
 
