@@ -131,9 +131,8 @@ def add_tracks_to_playlist(spotify_playlist_id):
     for ix, track_id in enumerate(tracks_to_add):
         tracks_to_add[ix] = f'spotify:track:{track_id}'
 
-    sp.user_playlist_add_tracks(sp.current_user()['id'],
-                                spotify_playlist_id,
-                                tracks_to_add)
+    sp.playlist_add_items(spotify_playlist_id,
+                          tracks_to_add)
 
     return 'Success'
 
