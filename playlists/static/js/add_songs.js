@@ -1,7 +1,8 @@
-const searchInput = document.getElementById('search-input');
-const searchResults = document.getElementById('search-results');
+const searchInput = document.getElementById('search-input')
+const searchResults = document.getElementById('search-results')
 const addSongsBtn = document.getElementById('add-songs-button')
-const selectedSongsDiv = document.getElementById('selected-songs');
+const selectedSongsDiv = document.getElementById('selected-songs')
+const addAtLeastOneLabel = document.getElementById('add-at-least-one')
 
 var selected_songs_arr = []
 
@@ -142,6 +143,7 @@ function select_song(song, selected_songs_arr, selectedSongsDiv){
     const selected_index = get_index_of_selected_song(song, selected_songs_arr);
     if (!Number.isInteger(selected_index)) {
         selected_songs_arr.push(song);
+        addAtLeastOneLabel.innerText = ''
         add_selected_song_to_display(song, selectedSongsDiv);
     } else {
         already_selected_error();
@@ -189,55 +191,40 @@ searchInput.addEventListener('keyup', function() {
     });
 });
 
+function check_at_least_one_song() {
+    if (selected_songs_arr.length <= 0) {
+
+    }
+}
+
 if (addSongsBtn) {
     addSongsBtn.addEventListener('click', function onClick() {
 
-        console.log('Success')
+        // make sure at least one song is added
+        if (selected_songs_arr.length > 0) {
 
-        tracks_to_add = []
-        selected_songs_arr.forEach(function(track, loop_index, _) {
-            tracks_to_add.push( track['id'] )
-        });
+            tracks_to_add = []
+            selected_songs_arr.forEach(function(track, loop_index, _) {
+                tracks_to_add.push( track['id'] )
+            });
 
-        const add_to_playlist_url ='/add_tracks_to_playlist/'+this.name
+            const add_to_playlist_url ='/add_tracks_to_playlist/'+this.name
 
-        let data = new FormData()
-        data.append('tracks',tracks_to_add)
+            let data = new FormData()
+            data.append('tracks',tracks_to_add)
 
-//        let data =
-
-        fetch(add_to_playlist_url, {
-            'method':'POST',
-            "headers": {"Content-Type": "application/json"},
-            'body':JSON.stringify({tracks_to_add})
-        })
+            fetch(add_to_playlist_url, {
+                'method':'POST',
+                "headers": {"Content-Type": "application/json"},
+                'body':JSON.stringify({tracks_to_add})
+            }).then( response => {
+                window.location = response.url
+            })
+        } else {
+            addAtLeastOneLabel.innerText = "Add at least one song!"
+//            addAtLeastOneLabel.color = 'red'
+        }
 
 
     });
 }
-
-//        const URL = '/add_songs_to_playlist/'+this.name
-//        var xhr = new XMLHttpRequest();
-//        xhr.open("POST", URL, true);
-//        xhr.setRequestHeader("Content-Type", "application/json");
-//        xhr.onload = function () {
-//            console.log(this.responseText);
-//        };
-//        xhr.send(JSON.stringify({
-//            "message": "Hello, Flask!"
-//        }));
-//        fetch('/add_songs_to_playlist/'+this.name, {
-//          method: 'POST',
-//          body: JSON.stringify(tracks_to_add), // stringify the data before sending
-//          headers: {
-//            'Content-Type': 'application/json'
-//          }
-//        })
-//        .then(response => response.json())
-//        .then(response => {
-//          // Do something with the response from the Flask endpoint
-//          console.log(response)
-//        })
-//        .catch(error => {
-//          // Handle any errors that occurred
-//        });

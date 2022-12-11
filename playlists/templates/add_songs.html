@@ -8,10 +8,10 @@
     <p>Selected Songs</p>
 
 
-    <form>
-      <div id="selected-songs"></div>
-      <input type="submit" id="add-songs-button" name="{{spotify_playlist_id}}" value="Add songs to playlist">
-    </form>
+
+    <div id="selected-songs"></div>
+    <label id="add-at-least-one" for="add-songs-button" style="color: red;"></label>
+    <input type="submit" id="add-songs-button" name="{{spotify_playlist_id}}" value="Add songs to your playlist">
 
     <script src="{{ url_for( 'serve_search_bar_js' ) }}"></script>
 

@@ -134,12 +134,14 @@ def add_tracks_to_playlist(spotify_playlist_id):
     sp.playlist_add_items(spotify_playlist_id,
                           tracks_to_add)
 
-    return 'Success'
+    return redirect(url_for('tracks_added',
+                            spotify_playlist_id=spotify_playlist_id))
 
 
 @app.route('/tracks_added/<string:spotify_playlist_id>')
 def tracks_added(spotify_playlist_id):
-    print('didnt add tracks')
+    return render_template('tracks_added.html',
+                           link=f'https://open.spotify.com/playlist/{spotify_playlist_id}')
 
 
 @app.route('/create')
