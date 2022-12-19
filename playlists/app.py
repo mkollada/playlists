@@ -4,6 +4,7 @@ from flask import Flask, redirect, session, url_for, request, render_template, \
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from models import db
+from html import escape
 
 app = Flask(__name__)
 app.config.from_mapping(
@@ -26,7 +27,6 @@ CACHE = '.spotifycache'
 # Reads client id and client secret from environment variables
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
 
-
 def query_current_user_id():
     # TODO: probably should be a check here if we get user
     return User.query.filter(
@@ -34,14 +34,21 @@ def query_current_user_id():
     ).first().id
 
 
-@app.route('/')
-def home():
+@app.route('/favicon.ico')
+def favicon():
+    return app.send_static_file('favicon.ico')
+
+
+# Use a catch-all route to match any URL
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def catch_all(path):
+    # Redirect the user to the create page
     token_info = sp.auth_manager.get_cached_token()
-    if token_info and not sp.auth_manager.is_token_expired(token_info):
+    if check_if_logged_in(token_info):
         return redirect(url_for('create'))
     else:
-        session['prev_url'] = '/'
-        return redirect((url_for('login')))
+        return redirect(url_for('login'))
 
 
 def register_current_user():
@@ -62,34 +69,46 @@ def check_if_user_registered():
         return user
 
 
+def check_if_logged_in(token_info):
+    if token_info and not sp.auth_manager.is_token_expired(token_info):
+        return True
+    else:
+        return False
+
+
 @app.route('/login')
 def login():
     # If auth token is already cached and not expired, use that else redirect
     # user to login or refresh token
     token_info = sp.auth_manager.get_cached_token()
     # if already logged in
-    if token_info and not sp.auth_manager.is_token_expired(token_info):
-        access_token = token_info['access_token']
-        session['access_token'] = access_token
-
+    if check_if_logged_in(token_info):
+        set_token(token_info)
         return redirect(request.referrer)
     # go login
     else:
         login_url = sp.auth_manager.get_authorize_url()
+        session['redirect_url'] = request.referrer
         return redirect(login_url)
 
 
-@app.route('/oauth/callback')
-def set_token():
-    code = request.args['code']
-    token_info = sp.auth_manager.get_access_token(code)
+def set_token(token_info):
     access_token = token_info['access_token']
     session['access_token'] = access_token
-
+    session['logged_in'] = True
     check_if_user_registered()
 
-    redirect_url = session['prev_url']
-    session['prev_url'] = None
+    return session['logged_in']
+
+
+@app.route('/oauth/callback', methods=['GET'])
+def callback():
+    code = request.args['code']
+    token_info = sp.auth_manager.get_access_token(code)
+    set_token(token_info)
+
+    redirect_url = session['redirect_url']
+    session['redirect_url'] = None
 
     return redirect(redirect_url)
 
@@ -100,10 +119,11 @@ def serve_search_bar_js():
 
 
 # TODO: Make this a post/get method
-@app.route('/search')
+@app.route('/search', methods=['GET'])
 def search():
     # Get the search query from the request
-    query = request.args.get('query')
+    # sanitizing request using python built-in html.escape
+    query = escape(request.args.get('query'))
     if query:
         # Use the Spotify client to search for tracks
         results = sp.search(query, type="track")
@@ -115,11 +135,10 @@ def search():
 @app.route('/add_songs/<string:spotify_playlist_id>', methods=['GET'])
 def add_songs(spotify_playlist_id):
     token_info = sp.auth_manager.get_cached_token()
-    if token_info and not sp.auth_manager.is_token_expired(token_info):
+    if check_if_logged_in(token_info):
         return render_template('add_songs.html',
                                spotify_playlist_id=spotify_playlist_id)
     else:
-        session['prev_url'] = '/add_songs'
         return redirect((url_for('login')))
 
 
@@ -134,14 +153,21 @@ def add_tracks_to_playlist(spotify_playlist_id):
     sp.playlist_add_items(spotify_playlist_id,
                           tracks_to_add)
 
+    session[f'tracks_added-{spotify_playlist_id}'] = True
+
     return redirect(url_for('tracks_added',
                             spotify_playlist_id=spotify_playlist_id))
 
 
-@app.route('/tracks_added/<string:spotify_playlist_id>')
+@app.route('/tracks_added/<string:spotify_playlist_id>', methods=['GET'])
 def tracks_added(spotify_playlist_id):
-    return render_template('tracks_added.html',
-                           link=f'https://open.spotify.com/playlist/{spotify_playlist_id}')
+    if session.get(f'tracks_added-{spotify_playlist_id}'):
+        return render_template('tracks_added.html',
+                               link=f'https://open.spotify.com/playlist/{spotify_playlist_id}')
+    else:
+        return redirect(url_for('add_songs',
+                                spotify_playlist_id=spotify_playlist_id))
+
 
 
 @app.route('/create')
@@ -166,12 +192,15 @@ def playlist_created():
 
 @app.route('/create_playlist', methods=['POST', 'GET'])
 def create_playlist():
+    name = escape(request.form['playlist-name-field'])
+    description = escape(request.form['playlist-desc-field'])
+
     playlist = sp.user_playlist_create(
         user=sp.current_user()['id'],
-        name=request.form['playlist-name-field'],
+        name=name,
         public=False,
         collaborative=True,
-        description=request.form['playlist-desc-field']
+        description=description
     )
 
     current_user_id = query_current_user_id()
@@ -186,6 +215,10 @@ def create_playlist():
                             name=request.form['playlist-name-field'],
                             link=playlist['external_urls']['spotify'],
                             spotify_playlist_id=playlist['id']))
+
+## TODO: redirect when we don't have spotify access
+# app.route('/no_access')
+# def no_access():
 
 
 if __name__ == '__main__':
