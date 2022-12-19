@@ -42,7 +42,7 @@ function display_search_results(searchResults, results) {
 
     // Flip color of clicked button
     resultButton.addEventListener('click', function onClick() {
-        select_song(track, selected_songs_arr, selectedSongsDiv)
+        select_song(track, selectedSongsDiv)
     });
 
     resultDiv.appendChild(resultButton)
@@ -87,7 +87,7 @@ function get_song_and_artist_name(track) {
 
 // checking if the song is already selected
 // - TODO: idk if this is the best method
-function get_index_of_selected_song(song, selected_songs_arr) {
+function get_index_of_selected_song(song) {
     var selected_index = false;
     selected_songs_arr.forEach(function(selected_song, index, _) {
         if (selected_song.uri === song.uri) {
@@ -112,6 +112,7 @@ function add_selected_song_to_display(track, selectedSongsDiv) {
 
     // Outer div to hold name and x button next to each other
     const selectedDiv = document.createElement('div');
+    selectedDiv.setAttribute('id', get_selected_song_div_id(track));
     selectedDiv.setAttribute('name', get_selected_song_div_id(track));
 
     // Inner div for name of song
@@ -126,7 +127,7 @@ function add_selected_song_to_display(track, selectedSongsDiv) {
     selectedDivXBtn.style.display = "inline-block";
     selectedDivXBtn.innerText = 'X'
     selectedDivXBtn.addEventListener('click', function onClick() {
-        unselect_song(track, selected_songs_arr, selectedSongsDiv);
+        unselect_song(track, selectedSongsDiv);
     });
 
     // Add name and button to outer div
@@ -139,8 +140,8 @@ function add_selected_song_to_display(track, selectedSongsDiv) {
     return selectedSongsDiv;
 }
 
-function select_song(song, selected_songs_arr, selectedSongsDiv){
-    const selected_index = get_index_of_selected_song(song, selected_songs_arr);
+function select_song(song, selectedSongsDiv){
+    const selected_index = get_index_of_selected_song(song);
     if (!Number.isInteger(selected_index)) {
         selected_songs_arr.push(song);
         addAtLeastOneLabel.innerText = ''
@@ -160,7 +161,7 @@ function remove_unselected_song_from_display(track){
     parent.removeChild(selectedDiv);
 }
 
-function unselect_song(track, selected_songs_arr, selectedSongsDiv) {
+function unselect_song(track, selectedSongsDiv) {
     const selected_index = get_index_of_selected_song(track, selected_songs_arr);
     if (Number.isInteger(selected_index)) {
         selected_songs_arr.splice(selected_index, 1);
