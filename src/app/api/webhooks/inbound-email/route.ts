@@ -5,10 +5,15 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Extracts roundId from addresses like playlist-{roundId}@reply.yourdomain.com
 function extractRoundId(toAddress: string): string | null {
   const match = toAddress.match(/playlist-([a-z0-9]+)@/i);
   return match ? match[1] : null;
+}
+
+function extractEmail(address: string): string {
+  // Handles "Display Name <email@domain.com>" or plain "email@domain.com"
+  const match = address.match(/<([^>]+)>/);
+  return (match ? match[1] : address).toLowerCase().trim();
 }
 
 function extractSpotifyTrackIds(text: string): string[] {
@@ -19,14 +24,28 @@ function extractSpotifyTrackIds(text: string): string[] {
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
-  // Resend email.received webhook format
-  const data = body.data ?? body;
-  const toAddress: string = Array.isArray(data.to) ? data.to[0] : (data.to ?? "");
-  const fromEmail: string = data.from ?? "";
-  const emailText: string = data.text ?? data.plain ?? "";
+  // Resend email.received webhook payload
+  const data = body.data ?? {};
+  const emailId: string = data.email_id ?? "";
+  const toAddresses: string[] = Array.isArray(data.to) ? data.to : [data.to ?? ""];
+  const fromRaw: string = data.from ?? "";
+  const fromEmail = extractEmail(fromRaw);
+  const toAddress = toAddresses[0] ?? "";
 
   const roundId = extractRoundId(toAddress);
   if (!roundId) return NextResponse.json({ error: "Invalid to address" }, { status: 400 });
+
+  // Fetch full email content from Resend API
+  let emailText = "";
+  if (emailId) {
+    const emailRes = await fetch(`https://api.resend.com/emails/${emailId}`, {
+      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+    });
+    if (emailRes.ok) {
+      const emailData = await emailRes.json();
+      emailText = emailData.text ?? emailData.html ?? "";
+    }
+  }
 
   const round = await prisma.round.findUnique({
     where: { id: roundId },
@@ -38,14 +57,13 @@ export async function POST(req: NextRequest) {
   }
 
   const participant = await prisma.participant.findUnique({
-    where: { email: fromEmail.toLowerCase() },
+    where: { email: fromEmail },
   });
 
   if (!participant) {
     return NextResponse.json({ error: "Participant not found" }, { status: 404 });
   }
 
-  // Check if already submitted
   const existing = await prisma.submission.findUnique({
     where: { roundId_participantId: { roundId, participantId: participant.id } },
   });
@@ -58,7 +76,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No Spotify track links found" }, { status: 400 });
   }
 
-  // Fetch track info and add to playlist
   const creatorId = round.prompt.creatorId;
   const tracks = await Promise.all(trackIds.map((id) => getTrack(creatorId, id)));
   const uris = tracks.map((t) => t.uri);
@@ -67,7 +84,6 @@ export async function POST(req: NextRequest) {
     await addTracksToPlaylist(creatorId, round.spotifyPlaylistId, uris);
   }
 
-  // Persist submission
   const submission = await prisma.submission.create({
     data: {
       roundId,
@@ -84,7 +100,6 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Determine whether to send playlist link now
   const revealNow =
     round.prompt.revealAnchor === "ON_SUBMISSION" ||
     (!round.prompt.requireSubmitToView && round.revealAt <= new Date());

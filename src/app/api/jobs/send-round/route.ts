@@ -72,11 +72,15 @@ export async function POST(req: NextRequest) {
     )
   );
 
-  await qstash.publishJSON({
-    url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/jobs/reveal-playlist`,
-    body: { roundId: round.id },
-    notBefore: Math.floor(revealAt.getTime() / 1000),
-  });
+  // Only schedule reveal job for deadline-based reveals.
+  // ON_SUBMISSION reveals are handled directly in the inbound webhook.
+  if (prompt.revealAnchor === "ON_DEADLINE") {
+    await qstash.publishJSON({
+      url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/jobs/reveal-playlist`,
+      body: { roundId: round.id },
+      notBefore: Math.floor(revealAt.getTime() / 1000),
+    });
+  }
 
   if (prompt.recurrence !== "ONCE") {
     const nextSendAt = new Date(now.getTime() + RECURRENCE_MS[prompt.recurrence]);
