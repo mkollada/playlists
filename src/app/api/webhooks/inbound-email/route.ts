@@ -19,9 +19,11 @@ function extractSpotifyTrackIds(text: string): string[] {
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
-  const toAddress: string = body.to ?? "";
-  const fromEmail: string = body.from ?? "";
-  const emailText: string = body.text ?? body.plain ?? "";
+  // Resend email.received webhook format
+  const data = body.data ?? body;
+  const toAddress: string = Array.isArray(data.to) ? data.to[0] : (data.to ?? "");
+  const fromEmail: string = data.from ?? "";
+  const emailText: string = data.text ?? data.plain ?? "";
 
   const roundId = extractRoundId(toAddress);
   if (!roundId) return NextResponse.json({ error: "Invalid to address" }, { status: 400 });
