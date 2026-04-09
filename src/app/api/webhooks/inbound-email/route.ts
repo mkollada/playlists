@@ -25,6 +25,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
 
   // Resend email.received webhook payload
+  console.log("[inbound-email] full body keys:", JSON.stringify(Object.keys(body)));
+  console.log("[inbound-email] data keys:", JSON.stringify(Object.keys(body.data ?? {})));
   const data = body.data ?? {};
   const emailId: string = data.email_id ?? "";
   const toAddresses: string[] = Array.isArray(data.to) ? data.to : [data.to ?? ""];
@@ -36,8 +38,9 @@ export async function POST(req: NextRequest) {
   if (!roundId) return NextResponse.json({ error: "Invalid to address" }, { status: 400 });
 
   // Fetch full email content from Resend API
-  let emailText = "";
-  if (emailId) {
+  let emailText: string = data.text ?? data.html ?? "";
+  console.log("[inbound-email] text from webhook payload:", emailText.slice(0, 200));
+  if (!emailText && emailId) {
     const emailRes = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
     });
