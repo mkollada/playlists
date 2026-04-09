@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   // Fetch full email content from Resend API
   let emailText = "";
   if (emailId) {
-    const emailRes = await fetch(`https://api.resend.com/emails/${emailId}`, {
+    const emailRes = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
     });
     if (emailRes.ok) {
