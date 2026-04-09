@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- Auth.js required tables ---
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --- App tables ---
+
+model User {
+  id                   String   @id @default(cuid())
+  email                String   @unique
+  name                 String?
+  image                String?
+  spotifyId            String?  @unique
+  spotifyAccessToken   String?
+  spotifyRefreshToken  String?
+  spotifyTokenExpiresAt DateTime?
+  createdAt            DateTime @default(now())
+
+  accounts        Account[]
+  sessions        Session[]
+  playlistPrompts PlaylistPrompt[]
+  participant     Participant?
+}
+
+model Participant {
+  id        String  @id @default(cuid())
+  email     String  @unique
+  name      String?
+  userId    String? @unique
+  user      User?   @relation(fields: [userId], references: [id])
+
+  promptParticipants PromptParticipant[]
+  submissions        Submission[]
+}
+
+enum Recurrence {
+  ONCE
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum RevealAnchor {
+  ON_SUBMISSION
+  ON_DEADLINE
+}
+
+model PlaylistPrompt {
+  id                  String       @id @default(cuid())
+  creatorId           String
+  creator             User         @relation(fields: [creatorId], references: [id])
+  title               String
+  description         String?
+  recurrence          Recurrence
+  songsPerPerson      Int?
+  requireSubmitToView Boolean      @default(true)
+  submissionWindowDays Int
+  revealAnchor        RevealAnchor
+  revealOffsetHours   Int          @default(0)
+  createdAt           DateTime     @default(now())
+
+  participants PromptParticipant[]
+  rounds       Round[]
+}
+
+model PromptParticipant {
+  promptId      String
+  participantId String
+  prompt        PlaylistPrompt @relation(fields: [promptId], references: [id])
+  participant   Participant    @relation(fields: [participantId], references: [id])
+
+  @@id([promptId, participantId])
+}
+
+enum RoundStatus {
+  ACTIVE
+  CLOSED
+}
+
+model Round {
+  id                String      @id @default(cuid())
+  promptId          String
+  prompt            PlaylistPrompt @relation(fields: [promptId], references: [id])
+  status            RoundStatus @default(ACTIVE)
+  spotifyPlaylistId String?
+  sentAt            DateTime
+  deadline          DateTime
+  revealAt          DateTime
+  createdAt         DateTime    @default(now())
+
+  submissions Submission[]
+}
+
+model Submission {
+  id            String      @id @default(cuid())
+  roundId       String
+  round         Round       @relation(fields: [roundId], references: [id])
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id])
+  submittedAt   DateTime    @default(now())
+
+  tracks SubmissionTrack[]
+
+  @@unique([roundId, participantId])
+}
+
+model SubmissionTrack {
+  id                String     @id @default(cuid())
+  submissionId      String
+  submission        Submission @relation(fields: [submissionId], references: [id])
+  spotifyTrackId    String
+  spotifyUri        String
+  title             String
+  artist            String
+  addedToPlaylistAt DateTime?
+}
