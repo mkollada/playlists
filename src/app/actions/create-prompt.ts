@@ -24,7 +24,6 @@ export async function createPrompt(input: CreatePromptInput) {
   const session = await getSession();
   if (!session?.user?.id) throw new Error("Not authenticated");
 
-  // Upsert all participants by email
   const participants = await Promise.all(
     input.participantEmails.map((email) =>
       prisma.participant.upsert({
@@ -52,7 +51,6 @@ export async function createPrompt(input: CreatePromptInput) {
     },
   });
 
-  // Enqueue the first round immediately (notBefore = now)
   await qstash.publishJSON({
     url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/jobs/send-round`,
     body: { promptId: prompt.id },

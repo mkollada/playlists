@@ -34,14 +34,12 @@ export async function POST(req: NextRequest) {
     revealAt = new Date(deadline.getTime() + prompt.revealOffsetHours * 60 * 60 * 1000);
   }
 
-  // Create Spotify playlist
   const spotifyPlaylistId = await createSpotifyPlaylist(
     prompt.creatorId,
     prompt.title,
     prompt.description ?? undefined
   );
 
-  // Create round record
   const round = await prisma.round.create({
     data: {
       promptId,
@@ -52,7 +50,6 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Send prompt emails
   const replyTo = `playlist-${round.id}@${process.env.REPLY_DOMAIN}`;
 
   await Promise.all(
@@ -75,14 +72,12 @@ export async function POST(req: NextRequest) {
     )
   );
 
-  // Schedule reveal job
   await qstash.publishJSON({
     url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/jobs/reveal-playlist`,
     body: { roundId: round.id },
     notBefore: Math.floor(revealAt.getTime() / 1000),
   });
 
-  // Schedule next round if recurring
   if (prompt.recurrence !== "ONCE") {
     const nextSendAt = new Date(now.getTime() + RECURRENCE_MS[prompt.recurrence]);
     await qstash.publishJSON({
