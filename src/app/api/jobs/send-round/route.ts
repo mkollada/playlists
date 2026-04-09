@@ -5,7 +5,7 @@ import { Resend } from "resend";
 import { Client } from "@upstash/qstash";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const qstash = new Client({ token: process.env.QSTASH_TOKEN!, baseUrl: "https://qstash.upstash.io" });
+const qstash = new Client({ token: process.env.QSTASH_TOKEN!, baseUrl: "https://qstash-us-east-1.upstash.io" });
 
 const RECURRENCE_MS: Record<string, number> = {
   WEEKLY: 7 * 24 * 60 * 60 * 1000,

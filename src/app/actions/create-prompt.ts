@@ -6,7 +6,7 @@ import { Client } from "@upstash/qstash";
 import { redirect } from "next/navigation";
 import { Recurrence, RevealAnchor } from "@prisma/client";
 
-const qstash = new Client({ token: process.env.QSTASH_TOKEN!, baseUrl: "https://qstash.upstash.io" });
+const qstash = new Client({ token: process.env.QSTASH_TOKEN!, baseUrl: "https://qstash-us-east-1.upstash.io" });
 
 export type CreatePromptInput = {
   title: string;
