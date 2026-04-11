@@ -19,7 +19,12 @@ export default async function PromptPage({ params }: { params: Promise<{ id: str
       rounds: {
         orderBy: { sentAt: "desc" },
         include: {
-          _count: { select: { submissions: true } },
+          submissions: {
+            include: {
+              participant: true,
+              tracks: { orderBy: { id: "asc" } },
+            },
+          },
         },
       },
     },
@@ -65,7 +70,7 @@ export default async function PromptPage({ params }: { params: Promise<{ id: str
                 ) : "Closed"}
               </span>
               <span className="text-zinc-300">·</span>
-              <span className="text-zinc-500">{latestRound._count.submissions} / {prompt.participants.length} submitted</span>
+              <span className="text-zinc-500">{latestRound.submissions.length} / {prompt.participants.length} submitted</span>
             </div>
           )}
         </div>
@@ -76,14 +81,14 @@ export default async function PromptPage({ params }: { params: Promise<{ id: str
             <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest px-1">Rounds</h2>
             <ul className="space-y-2">
               {prompt.rounds.map((round, i) => (
-                <li key={round.id} className="rounded-2xl border border-zinc-200 bg-white px-5 py-4">
-                  <div className="flex items-center justify-between gap-4">
+                <li key={round.id} className="rounded-2xl border border-zinc-200 bg-white overflow-hidden">
+                  <div className="flex items-center justify-between gap-4 px-5 py-4">
                     <div>
                       <p className="text-sm font-medium text-zinc-700">
                         Round {prompt.rounds.length - i}
                       </p>
                       <p className="mt-0.5 text-xs text-zinc-400">
-                        Sent {round.sentAt.toLocaleDateString()} · {round._count.submissions} of {prompt.participants.length} submitted
+                        Sent {round.sentAt.toLocaleDateString()} · {round.submissions.length} of {prompt.participants.length} submitted
                       </p>
                     </div>
                     {round.spotifyPlaylistId && (
@@ -100,6 +105,23 @@ export default async function PromptPage({ params }: { params: Promise<{ id: str
                       </a>
                     )}
                   </div>
+                  {round.submissions.length > 0 && (
+                    <div className="border-t border-zinc-100 divide-y divide-zinc-100">
+                      {round.submissions.map((submission) => (
+                        <div key={submission.id} className="px-5 py-3">
+                          <p className="text-xs font-medium text-zinc-500 mb-1.5">{submission.participant.email}</p>
+                          <ul className="space-y-1">
+                            {submission.tracks.map((track) => (
+                              <li key={track.id} className="flex items-baseline gap-2 text-sm">
+                                <span className="font-medium text-zinc-800">{track.title}</span>
+                                <span className="text-zinc-400 text-xs">{track.artist}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
