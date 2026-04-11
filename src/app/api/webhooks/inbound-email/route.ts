@@ -108,13 +108,36 @@ export async function POST(req: NextRequest) {
 
   const playlistUrl = `https://open.spotify.com/playlist/${round.spotifyPlaylistId}`;
 
+  const trackList = tracks.map((t) => `  • ${t.title} — ${t.artist}`).join("\n");
+
   await resend.emails.send({
     from: process.env.EMAIL_FROM!,
     to: fromEmail,
-    subject: `Got your submission for "${round.prompt.title}"`,
+    subject: `Your songs are in — ${round.prompt.title}`,
     text: revealNow
-      ? `Thanks for adding your songs! Here's the playlist: ${playlistUrl}`
-      : `Thanks for adding your songs! You'll get the playlist link on ${round.revealAt.toDateString()}.`,
+      ? [
+          `Got your songs for "${round.prompt.title}"!`,
+          "",
+          "You added:",
+          trackList,
+          "",
+          "Here's the playlist:",
+          playlistUrl,
+          "",
+          "─────────────────────────",
+          "Collective Record",
+        ].join("\n")
+      : [
+          `Got your songs for "${round.prompt.title}"!`,
+          "",
+          "You added:",
+          trackList,
+          "",
+          `The playlist will be revealed on ${round.revealAt.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}. We'll send you the link then.`,
+          "",
+          "─────────────────────────",
+          "Collective Record",
+        ].join("\n"),
   });
 
   return NextResponse.json({ submissionId: submission.id });

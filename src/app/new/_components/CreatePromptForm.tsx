@@ -4,11 +4,17 @@ import { useState, useTransition } from "react";
 import { createPrompt, CreatePromptInput } from "@/app/actions/create-prompt";
 import { Recurrence, RevealAnchor } from "@prisma/client";
 
+const RECURRENCE_LABELS: Record<Recurrence, string> = {
+  ONCE: "Once",
+  WEEKLY: "Weekly",
+  MONTHLY: "Monthly",
+  YEARLY: "Yearly",
+};
+
 export default function CreatePromptForm() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [recurrence, setRecurrence] = useState<Recurrence>("ONCE");
@@ -18,7 +24,6 @@ export default function CreatePromptForm() {
   const [revealAnchor, setRevealAnchor] = useState<RevealAnchor>("ON_DEADLINE");
   const [revealOffsetDays, setRevealOffsetDays] = useState(0);
 
-  // Participants
   const [emailInput, setEmailInput] = useState("");
   const [emails, setEmails] = useState<string[]>([]);
 
@@ -44,7 +49,6 @@ export default function CreatePromptForm() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-
     if (!title.trim()) return setError("Title is required.");
     if (emails.length === 0) return setError("Add at least one participant.");
 
@@ -70,87 +74,81 @@ export default function CreatePromptForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-10">
+    <form onSubmit={handleSubmit} className="space-y-8">
 
       {/* Details */}
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-400">Details</h2>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Title</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Summer road trip vibes"
-              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 focus:ring-0"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">
-              Description <span className="text-zinc-400 font-normal">(optional)</span>
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add some context for your friends..."
-              rows={3}
-              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400 resize-none"
-            />
-          </div>
+      <div className="space-y-4">
+        <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Details</h2>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1.5">Title</label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Summer road trip vibes"
+            className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-400 focus:ring-0"
+          />
         </div>
-      </section>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1.5">
+            Description <span className="font-normal text-zinc-400">(optional)</span>
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Give your friends some context..."
+            rows={3}
+            className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-zinc-400 resize-none"
+          />
+        </div>
+      </div>
 
       {/* Schedule */}
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-400">Schedule</h2>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">Frequency</label>
-            <div className="flex gap-2 flex-wrap">
-              {(["ONCE", "WEEKLY", "MONTHLY", "YEARLY"] as Recurrence[]).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setRecurrence(r)}
-                  className={`px-4 py-1.5 rounded-full text-sm border transition-colors ${
-                    recurrence === r
-                      ? "bg-zinc-900 text-white border-zinc-900"
-                      : "border-zinc-200 text-zinc-600 hover:border-zinc-400"
-                  }`}
-                >
-                  {r.charAt(0) + r.slice(1).toLowerCase()}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">
-              Days to submit
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="number"
-                min={1}
-                max={365}
-                value={submissionWindowDays}
-                onChange={(e) => setSubmissionWindowDays(parseInt(e.target.value) || 7)}
-                className="w-20 rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-              />
-              <span className="text-sm text-zinc-500">days to add songs after the prompt is sent</span>
-            </div>
+      <div className="space-y-4">
+        <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Schedule</h2>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-2">Frequency</label>
+          <div className="flex gap-2">
+            {(["ONCE", "WEEKLY", "MONTHLY", "YEARLY"] as Recurrence[]).map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setRecurrence(r)}
+                className={`px-3.5 py-1.5 rounded-full text-sm border transition-colors ${
+                  recurrence === r
+                    ? "bg-zinc-900 text-white border-zinc-900"
+                    : "border-zinc-200 text-zinc-600 hover:border-zinc-400"
+                }`}
+              >
+                {RECURRENCE_LABELS[r]}
+              </button>
+            ))}
           </div>
         </div>
-      </section>
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 mb-1.5">Submission window</label>
+          <div className="flex items-center gap-2.5">
+            <input
+              type="number"
+              min={1}
+              max={365}
+              value={submissionWindowDays}
+              onChange={(e) => setSubmissionWindowDays(parseInt(e.target.value) || 7)}
+              className="w-20 rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+            />
+            <span className="text-sm text-zinc-500">days to submit after the prompt is sent</span>
+          </div>
+        </div>
+      </div>
 
       {/* Submissions */}
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-400">Submissions</h2>
+      <div className="space-y-4">
+        <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Submissions</h2>
         <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-1">
-            Songs per person <span className="text-zinc-400 font-normal">(optional)</span>
+          <label className="block text-sm font-medium text-zinc-700 mb-1.5">
+            Songs per person <span className="font-normal text-zinc-400">(optional)</span>
           </label>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <input
               type="number"
               min={1}
@@ -162,38 +160,34 @@ export default function CreatePromptForm() {
             <span className="text-sm text-zinc-500">leave blank for no limit</span>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* Reveal */}
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-400">Playlist reveal</h2>
-        <div className="space-y-4">
+      <div className="space-y-4">
+        <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Reveal</h2>
+        <div className="space-y-3">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={requireSubmitToView}
+              onChange={(e) => setRequireSubmitToView(e.target.checked)}
+              className="h-4 w-4 rounded border-zinc-300 accent-zinc-900"
+            />
+            <span className="text-sm text-zinc-700">Must submit to receive the playlist link</span>
+          </label>
+
           <div>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={requireSubmitToView}
-                onChange={(e) => setRequireSubmitToView(e.target.checked)}
-                className="h-4 w-4 rounded border-zinc-300 accent-zinc-900"
-              />
-              <span className="text-sm text-zinc-700">Require submission to receive playlist link</span>
-            </label>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-2">Send playlist link</label>
-            <div className="space-y-2">
+            <p className="text-sm font-medium text-zinc-700 mb-2">Send playlist link</p>
+            <div className="space-y-2 pl-0.5">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="radio"
                   name="revealAnchor"
                   checked={revealAnchor === "ON_SUBMISSION"}
-                  onChange={() => {
-                    setRevealAnchor("ON_SUBMISSION");
-                    setRevealOffsetDays(0);
-                  }}
+                  onChange={() => { setRevealAnchor("ON_SUBMISSION"); setRevealOffsetDays(0); }}
                   className="mt-0.5 accent-zinc-900"
                 />
-                <span className="text-sm text-zinc-700">As soon as someone submits</span>
+                <span className="text-sm text-zinc-700">Immediately after someone submits</span>
               </label>
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
@@ -231,7 +225,7 @@ export default function CreatePromptForm() {
                       />
                       <span className="text-sm text-zinc-500">days</span>
                       {revealOffsetDays === 0 && (
-                        <span className="text-sm text-zinc-400">(at the deadline)</span>
+                        <span className="text-sm text-zinc-400">(on the deadline)</span>
                       )}
                     </div>
                   )}
@@ -240,58 +234,54 @@ export default function CreatePromptForm() {
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* Participants */}
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-400">Participants</h2>
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <input
-              type="email"
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              onKeyDown={handleEmailKeyDown}
-              placeholder="friend@example.com"
-              className="flex-1 rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
-            />
-            <button
-              type="button"
-              onClick={addEmail}
-              className="px-4 py-2 rounded-lg bg-zinc-100 text-sm font-medium text-zinc-700 hover:bg-zinc-200 transition-colors"
-            >
-              Add
-            </button>
-          </div>
-          {emails.length > 0 && (
-            <ul className="space-y-2">
-              {emails.map((email) => (
-                <li key={email} className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2">
-                  <span className="text-sm text-zinc-700">{email}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeEmail(email)}
-                    className="text-zinc-400 hover:text-zinc-700 text-xs"
-                  >
-                    Remove
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+      <div className="space-y-4">
+        <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Participants</h2>
+        <div className="flex gap-2">
+          <input
+            type="email"
+            value={emailInput}
+            onChange={(e) => setEmailInput(e.target.value)}
+            onKeyDown={handleEmailKeyDown}
+            placeholder="friend@example.com"
+            className="flex-1 rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-zinc-400"
+          />
+          <button
+            type="button"
+            onClick={addEmail}
+            className="px-4 py-2 rounded-lg bg-zinc-100 text-sm font-medium text-zinc-700 hover:bg-zinc-200 transition-colors"
+          >
+            Add
+          </button>
         </div>
-      </section>
+        {emails.length > 0 && (
+          <ul className="space-y-1.5">
+            {emails.map((email) => (
+              <li key={email} className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2.5">
+                <span className="text-sm text-zinc-700">{email}</span>
+                <button
+                  type="button"
+                  onClick={() => removeEmail(email)}
+                  className="text-xs text-zinc-400 hover:text-red-500 transition-colors"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
-      {error && (
-        <p className="text-sm text-red-600">{error}</p>
-      )}
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
       <button
         type="submit"
         disabled={isPending}
-        className="w-full rounded-full bg-zinc-900 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-80 disabled:opacity-50"
+        className="w-full rounded-full bg-zinc-900 py-3 text-sm font-semibold text-white hover:opacity-80 transition-opacity disabled:opacity-50"
       >
-        {isPending ? "Sending..." : "Create & send playlist prompt"}
+        {isPending ? "Sending…" : "Create & send"}
       </button>
     </form>
   );

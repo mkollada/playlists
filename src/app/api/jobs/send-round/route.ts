@@ -58,15 +58,29 @@ export async function POST(req: NextRequest) {
         from: process.env.EMAIL_FROM!,
         to: participant.email,
         replyTo,
-        subject: `Time to add songs: ${prompt.title}`,
+        subject: `🎵 Add your songs: ${prompt.title}`,
         text: [
-          prompt.description,
+          prompt.title,
+          prompt.description ? `\n${prompt.description}` : null,
           "",
-          `Reply to this email with Spotify track links${prompt.songsPerPerson ? ` (${prompt.songsPerPerson} songs please)` : ""}.`,
+          "─────────────────────────",
           "",
-          `Deadline: ${deadline.toDateString()}`,
+          `It's time to add your songs to the "${prompt.title}" playlist!`,
+          "",
+          `Just reply to this email with your Spotify song links${prompt.songsPerPerson ? ` (we're looking for ${prompt.songsPerPerson} song${prompt.songsPerPerson !== 1 ? "s" : ""} from each person)` : ""} and we'll add them to the playlist automatically.`,
+          "",
+          "How to get a Spotify link:",
+          "  1. Find a song in Spotify",
+          "  2. Right-click the song (or tap the three dots on mobile)",
+          "  3. Share → Copy Song Link",
+          "  4. Paste the link in your reply",
+          "",
+          `Deadline: ${deadline.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`,
+          "",
+          "─────────────────────────",
+          "Collective Record",
         ]
-          .filter((l) => l !== undefined)
+          .filter((l) => l !== null)
           .join("\n"),
       })
     )
